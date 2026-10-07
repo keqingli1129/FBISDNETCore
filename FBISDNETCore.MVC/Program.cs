@@ -1,4 +1,3 @@
-using FBISDNETCore.MVC.Data;
 using FBISDNETCore.MVC.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -14,11 +13,11 @@ namespace FBISDNETCore.MVC
             // Add services to the container.
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-            // Identity tables live in the same database as AdventureWorks; only this context has migrations.
+            // Maps the existing AspNet* Identity tables in the AdventureWorks database (no migrations).
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(connectionString));
 
-            // Database-first context scaffolded by EF Core Power Tools; never migrate it.
+            // Database-first context scaffolded by EF Core Power Tools.
             builder.Services.AddDbContext<AWDBContext>(options =>
                 options.UseSqlServer(connectionString, sql => sql.UseHierarchyId().UseNetTopologySuite()));
 
@@ -33,11 +32,7 @@ namespace FBISDNETCore.MVC
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseMigrationsEndPoint();
-            }
-            else
+            if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Home/Error");
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
