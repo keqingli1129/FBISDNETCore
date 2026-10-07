@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This is a freshly scaffolded ASP.NET Core MVC app (the stock `dotnet new mvc` template) targeting **.NET 10** (`net10.0`, SDK 10.0.x). The solution uses the new XML solution format (`FBISDNETCore.slnx`) and contains a single project, `FBISDNETCore.MVC`. There is no test project, no database/EF Core, no authentication, and no git repository yet.
+This is a freshly scaffolded ASP.NET Core MVC app (the stock `dotnet new mvc` template) targeting **.NET 10** (`net10.0`, SDK 10.0.x). The solution uses the new XML solution format (`FBISDNETCore.slnx`) and contains a single project, `FBISDNETCore.MVC`. There is no test project, no database/EF Core, and no authentication yet (`UseAuthorization()` is in the pipeline but nothing is configured).
 
 ## Commands
 
-Run from the repository root (where `FBISDNETCore.slnx` lives):
+Run from the repository root (where `FBISDNETCore.slnx` lives), not from the `FBISDNETCore.MVC/` project folder:
 
 ```bash
 dotnet build FBISDNETCore.slnx
