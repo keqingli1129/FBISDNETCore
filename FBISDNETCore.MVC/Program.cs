@@ -1,3 +1,8 @@
+using FBISDNETCore.MVC.Data;
+using FBISDNETCore.MVC.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
 namespace FBISDNETCore.MVC
 {
     public class Program
@@ -7,12 +12,32 @@ namespace FBISDNETCore.MVC
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+            // Identity tables live in the same database as AdventureWorks; only this context has migrations.
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(connectionString));
+
+            // Database-first context scaffolded by EF Core Power Tools; never migrate it.
+            builder.Services.AddDbContext<AWDBContext>(options =>
+                options.UseSqlServer(connectionString, sql => sql.UseHierarchyId().UseNetTopologySuite()));
+
+            builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+
+            // AddRoles must come before AddEntityFrameworkStores so the role store is registered too.
+            builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+                .AddRoles<IdentityRole>()
+                .AddEntityFrameworkStores<ApplicationDbContext>();
             builder.Services.AddControllersWithViews();
 
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
-            if (!app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseMigrationsEndPoint();
+            }
+            else
             {
                 app.UseExceptionHandler("/Home/Error");
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
@@ -28,6 +53,8 @@ namespace FBISDNETCore.MVC
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}")
+                .WithStaticAssets();
+            app.MapRazorPages()
                 .WithStaticAssets();
 
             app.Run();
