@@ -27,6 +27,21 @@ namespace FBISDNETCore.MVC
             builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
+
+            // Registered only when credentials are configured (user secrets in development): the handler
+            // throws on every request if ClientId is missing. The Login/Register buttons light up when the scheme exists.
+            var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+            var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+            if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret))
+            {
+                builder.Services.AddAuthentication()
+                    .AddGoogle(options =>
+                    {
+                        options.ClientId = googleClientId;
+                        options.ClientSecret = googleClientSecret;
+                    });
+            }
+
             builder.Services.AddControllersWithViews();
 
             var app = builder.Build();

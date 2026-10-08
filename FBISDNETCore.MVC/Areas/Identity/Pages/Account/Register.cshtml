@@ -2,6 +2,7 @@
 @model RegisterModel
 @{
     ViewData["Title"] = "Register";
+    var googleEnabled = Model.ExternalLogins?.Any(p => p.Name == "Google") == true;
 }
 
 <h1>@ViewData["Title"]</h1>
@@ -40,7 +41,7 @@
                 <div>
                     <p>
                         <button type="button" class="btn btn-primary" title="Skyward Login is not configured yet">Skyward Login</button>
-                        <button type="button" class="btn btn-primary" title="Google is not configured yet">Google</button>
+                        <button type="@(googleEnabled ? "submit" : "button")" name="provider" value="Google" class="btn btn-primary" title="@(googleEnabled ? "Register using your Google account" : "Google is not configured yet")">Google</button>
                         <button type="button" class="btn btn-primary" title="EntraID is not configured yet">EntraID</button>
                     </p>
                 </div>
