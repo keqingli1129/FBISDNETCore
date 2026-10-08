@@ -178,6 +178,14 @@ namespace FBISDNETCore.MVC.Areas.Identity.Pages.Account
                 await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
                 await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
 
+                // The provider already verified the email it sent (Google; EntraID for our single tenant and Skyward,
+                // where emails are district-managed). If the user kept that address, don't make them confirm it again.
+                // An address they typed in themselves still goes through the normal confirmation step.
+                var providerEmail = info.Principal.FindFirstValue(ClaimTypes.Email);
+                var emailVerifiedByProvider = !string.IsNullOrEmpty(providerEmail)
+                    && string.Equals(providerEmail, Input.Email, StringComparison.OrdinalIgnoreCase);
+                user.EmailConfirmed = emailVerifiedByProvider;
+
                 var result = await _userManager.CreateAsync(user);
                 if (result.Succeeded)
                 {
@@ -185,6 +193,13 @@ namespace FBISDNETCore.MVC.Areas.Identity.Pages.Account
                     if (result.Succeeded)
                     {
                         _logger.LogInformation("User created an account using {Name} provider.", info.LoginProvider);
+
+                        if (emailVerifiedByProvider)
+                        {
+                            _logger.LogInformation("Email marked confirmed: it matches the email verified by {Name} provider.", info.LoginProvider);
+                            await _signInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
+                            return LocalRedirect(returnUrl);
+                        }
 
                         var userId = await _userManager.GetUserIdAsync(user);
                         var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);

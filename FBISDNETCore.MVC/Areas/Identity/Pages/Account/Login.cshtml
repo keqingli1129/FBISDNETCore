@@ -5,6 +5,7 @@
     ViewData["Title"] = "Log in";
     var googleEnabled = Model.ExternalLogins?.Any(p => p.Name == "Google") == true;
     var entraEnabled = Model.ExternalLogins?.Any(p => p.Name == "AzureAD") == true;
+    var skywardEnabled = Model.ExternalLogins?.Any(p => p.Name == "Skyward") == true;
 }
 
 <div class="auth-container">
@@ -58,7 +59,7 @@
            type="submit" name="provider" value="<scheme name>"; this form already posts to ExternalLogin. *@
         <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post">
             <div class="d-grid gap-2">
-                <button type="button" class="btn external-btn d-flex align-items-center" title="Skyward Login is not configured yet">
+                <button type="@(skywardEnabled ? "submit" : "button")" name="provider" value="Skyward" class="btn external-btn d-flex align-items-center" title="@(skywardEnabled ? "Log in using your Skyward account" : "Skyward Login is not configured yet")">
                     <span class="me-3" aria-hidden="true">🔐</span>
                     <span class="flex-grow-1 text-start">Continue with Skyward Login</span>
                 </button>

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -9,6 +9,8 @@
 
   <ItemGroup>
     <None Include="efpt.config.json.user" />
+    <!-- Skyward SAML signing certificate (public), read from the content root at startup. -->
+    <None Update="certificate.pem" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

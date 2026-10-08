@@ -1,3 +1,5 @@
+using CoreMVC.Web;
+using FBISDNETCore.MVC.Authentication;
 using FBISDNETCore.MVC.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -76,6 +78,23 @@ namespace FBISDNETCore.MVC
                         options.Scope.Add("email");
                         options.Events.OnRemoteFailure = RedirectRemoteFailureToCallback;
                     });
+            }
+
+            // Skyward via SAML 2.0 (Saml.cs = request/response utility, SamlOptions = the "Saml" config section).
+            // Registered, like the others, only when configured: EntityId, IdpSsoUrl and the Skyward signing certificate
+            // (IdpCertificatePath, relative to the content root, or the PEM inline in IdpCertificate).
+            var saml = builder.Configuration.GetSection("Saml").Get<SamlOptions>() ?? new SamlOptions();
+            if (!string.IsNullOrEmpty(saml.IdpCertificatePath))
+            {
+                var certificatePath = Path.Combine(builder.Environment.ContentRootPath, saml.IdpCertificatePath);
+                saml.IdpCertificate = File.Exists(certificatePath) ? File.ReadAllText(certificatePath) : string.Empty;
+            }
+            builder.Services.AddSingleton(saml);
+            builder.Services.AddSingleton<SkywardSamlState>();
+            if (!string.IsNullOrEmpty(saml.EntityId) && !string.IsNullOrEmpty(saml.IdpSsoUrl) && !string.IsNullOrEmpty(saml.IdpCertificate))
+            {
+                builder.Services.AddAuthentication()
+                    .AddScheme<AuthenticationSchemeOptions, SkywardSamlHandler>(SkywardSamlHandler.SchemeName, SkywardSamlHandler.DisplayName, _ => { });
             }
 
             builder.Services.AddControllersWithViews();

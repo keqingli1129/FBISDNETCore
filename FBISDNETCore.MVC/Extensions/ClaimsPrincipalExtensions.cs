@@ -7,12 +7,13 @@ namespace FBISDNETCore.MVC.Extensions
         public const string Account = "Account";
         public const string Google = "Google";
         public const string EntraID = "EntraID";
+        public const string Skyward = "Skyward";
     }
 
     public static class ClaimsPrincipalExtensions
     {
         // How the current sign-in cookie was issued. SignInManager adds ClaimTypes.AuthenticationMethod = scheme name
-        // ("Google", "AzureAD") only for external logins; password sign-ins get "amr" = "pwd" instead, so a missing
+        // ("Google", "AzureAD", "Skyward") only for external logins; password sign-ins get "amr" = "pwd" instead, so a missing
         // AuthenticationMethod means a local account. Both claims survive the periodic security-stamp refresh.
         public static string? GetLoginMethod(this ClaimsPrincipal user)
         {
@@ -26,6 +27,7 @@ namespace FBISDNETCore.MVC.Extensions
                 null => LoginMethods.Account,
                 "Google" => LoginMethods.Google,
                 "AzureAD" => LoginMethods.EntraID,
+                "Skyward" => LoginMethods.Skyward,
                 var other => other,
             };
         }
