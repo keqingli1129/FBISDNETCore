@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Register";
     var googleEnabled = Model.ExternalLogins?.Any(p => p.Name == "Google") == true;
+    var entraEnabled = Model.ExternalLogins?.Any(p => p.Name == "AzureAD") == true;
 }
 
 <h1>@ViewData["Title"]</h1>
@@ -42,7 +43,7 @@
                     <p>
                         <button type="button" class="btn btn-primary" title="Skyward Login is not configured yet">Skyward Login</button>
                         <button type="@(googleEnabled ? "submit" : "button")" name="provider" value="Google" class="btn btn-primary" title="@(googleEnabled ? "Register using your Google account" : "Google is not configured yet")">Google</button>
-                        <button type="button" class="btn btn-primary" title="EntraID is not configured yet">EntraID</button>
+                        <button type="@(entraEnabled ? "submit" : "button")" name="provider" value="AzureAD" class="btn btn-primary" title="@(entraEnabled ? "Register using your EntraID account" : "EntraID is not configured yet")">EntraID</button>
                     </p>
                 </div>
             </form>

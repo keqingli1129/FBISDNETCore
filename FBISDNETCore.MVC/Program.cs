@@ -1,6 +1,9 @@
 using FBISDNETCore.MVC.Models;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace FBISDNETCore.MVC
 {
@@ -28,8 +31,8 @@ namespace FBISDNETCore.MVC
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
 
-            // Registered only when credentials are configured (user secrets in development): the handler
-            // throws on every request if ClientId is missing. The Login/Register buttons light up when the scheme exists.
+            // External providers are registered only when credentials are configured (user secrets in development):
+            // the handlers throw on every request if ClientId is missing. The Login/Register buttons light up when the scheme exists.
             var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
             var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
             if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret))
@@ -39,6 +42,39 @@ namespace FBISDNETCore.MVC
                     {
                         options.ClientId = googleClientId;
                         options.ClientSecret = googleClientSecret;
+                        options.Events.OnRemoteFailure = RedirectRemoteFailureToCallback;
+                    });
+            }
+
+            // EntraID (Azure AD) as an external OpenID Connect provider, same opt-in rule as Google.
+            // Scheme name "AzureAD" is what gets stored in AspNetUserLogins.LoginProvider.
+            var azureTenantId = builder.Configuration["Authentication:AzureAd:TenantId"];
+            var azureClientId = builder.Configuration["Authentication:AzureAd:ClientId"];
+            var azureClientSecret = builder.Configuration["Authentication:AzureAd:ClientSecret"];
+            var azureInstance = builder.Configuration["Authentication:AzureAd:Instance"] ?? "https://login.microsoftonline.com/";
+            if (!string.IsNullOrEmpty(azureTenantId) && !string.IsNullOrEmpty(azureClientId))
+            {
+                builder.Services.AddAuthentication()
+                    .AddOpenIdConnect("AzureAD", "EntraID", options =>
+                    {
+                        options.SignInScheme = IdentityConstants.ExternalScheme;
+                        options.Authority = $"{azureInstance.TrimEnd('/')}/{azureTenantId}/v2.0";
+                        options.ClientId = azureClientId;
+                        if (string.IsNullOrEmpty(azureClientSecret))
+                        {
+                            // Sign-in only (no downstream API calls): the id_token is posted straight back to /signin-oidc,
+                            // so no client secret is needed. Requires "ID tokens" to be enabled under Authentication
+                            // in the app registration.
+                            options.ResponseType = OpenIdConnectResponseType.IdToken;
+                        }
+                        else
+                        {
+                            options.ClientSecret = azureClientSecret;
+                            options.ResponseType = OpenIdConnectResponseType.Code;
+                        }
+                        // The ExternalLogin page pre-fills the email from this claim.
+                        options.Scope.Add("email");
+                        options.Events.OnRemoteFailure = RedirectRemoteFailureToCallback;
                     });
             }
 
@@ -68,6 +104,20 @@ namespace FBISDNETCore.MVC
                 .WithStaticAssets();
 
             app.Run();
+        }
+
+        // Without this, a failure reported by the provider (user cancelled, invalid client, redirect URI mismatch, ...)
+        // throws and shows the error page. Instead, send it to the ExternalLogin callback as remoteError so success
+        // and failure are both handled in Areas/Identity/Pages/Account/ExternalLogin.cshtml.cs.
+        private static Task RedirectRemoteFailureToCallback(RemoteFailureContext context)
+        {
+            // RedirectUri is the callback URL (including returnUrl) stored in the protected state when the login started;
+            // it's missing if the state itself couldn't be read.
+            var callbackUrl = context.Properties?.RedirectUri ?? "/Identity/Account/ExternalLogin?handler=Callback";
+            var error = context.Failure?.Message ?? "Unknown error.";
+            context.Response.Redirect(QueryHelpers.AddQueryString(callbackUrl, "remoteError", error));
+            context.HandleResponse();
+            return Task.CompletedTask;
         }
     }
 }
