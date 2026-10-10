@@ -230,6 +230,11 @@ body {
   color: #fff;
 }
 
+/* ===== Main Content ===== */
+main[role="main"] {
+  min-height: 60vh;
+}
+
 /* ===== Quick Links Bar ===== */
 .quick-links {
   background-color: #fff;
