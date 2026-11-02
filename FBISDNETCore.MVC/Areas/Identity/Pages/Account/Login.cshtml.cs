@@ -14,6 +14,8 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using FBISDNETCore.MVC.Authentication;
 
 namespace FBISDNETCore.MVC.Areas.Identity.Pages.Account
 {
@@ -22,11 +24,16 @@ namespace FBISDNETCore.MVC.Areas.Identity.Pages.Account
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly ILogger<LoginModel> _logger;
 
-        public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger)
+        public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger, IOptions<LocalAccountOptions> localAccounts)
         {
             _signInManager = signInManager;
             _logger = logger;
+            LocalAccountsEnabled = localAccounts.Value.Enabled;
         }
+
+        // False when "Authentication:LocalAccounts:Enabled" is off: the view hides the email/password form and
+        // OnPostAsync refuses password sign-ins.
+        public bool LocalAccountsEnabled { get; }
 
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
@@ -104,6 +111,12 @@ namespace FBISDNETCore.MVC.Areas.Identity.Pages.Account
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
         {
             returnUrl ??= Url.Content("~/");
+
+            if (!LocalAccountsEnabled)
+            {
+                ErrorMessage = "Email and password sign-in is turned off. Use one of the sign-in options below.";
+                return RedirectToPage(new { ReturnUrl = returnUrl });
+            }
 
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
 

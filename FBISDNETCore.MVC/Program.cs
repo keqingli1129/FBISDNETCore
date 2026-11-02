@@ -33,6 +33,33 @@ namespace FBISDNETCore.MVC
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
 
+            // Email/password accounts can be switched off ("Authentication:LocalAccounts:Enabled": false) so users sign in
+            // only through the external providers. The Login page checks the setting itself; the pages below only serve
+            // password accounts and answer 404 (external users never need Register: new ones finish on ExternalLogin).
+            var localAccountsSection = builder.Configuration.GetSection(LocalAccountOptions.SectionName);
+            builder.Services.Configure<LocalAccountOptions>(localAccountsSection);
+            if (!(localAccountsSection.Get<LocalAccountOptions>()?.Enabled ?? true))
+            {
+                string[] passwordOnlyPages =
+                [
+                    "/Account/Register",
+                    "/Account/ForgotPassword",
+                    "/Account/ForgotPasswordConfirmation",
+                    "/Account/ResetPassword",
+                    "/Account/ResetPasswordConfirmation",
+                    "/Account/Manage/ChangePassword",
+                    "/Account/Manage/SetPassword",
+                ];
+                builder.Services.AddRazorPages(options =>
+                {
+                    foreach (var page in passwordOnlyPages)
+                    {
+                        options.Conventions.AddAreaPageApplicationModelConvention("Identity", page,
+                            model => model.Filters.Add(new LocalAccountsDisabledFilter()));
+                    }
+                });
+            }
+
             // External providers are registered only when credentials are configured (user secrets in development):
             // the handlers throw on every request if ClientId is missing. The Login/Register buttons light up when the scheme exists.
             var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
