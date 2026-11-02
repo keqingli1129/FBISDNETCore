@@ -121,6 +121,17 @@ namespace FBISDNETCore.MVC.Areas.Identity.Pages.Account
                 {
                     return RedirectToPage("./LoginWith2fa", new { ReturnUrl = returnUrl, RememberMe = Input.RememberMe });
                 }
+                if (result.IsNotAllowed)
+                {
+                    // NotAllowed (unconfirmed email) is decided before the password is checked, so only say so
+                    // when the password is correct; otherwise it would reveal which emails have accounts.
+                    var user = await _signInManager.UserManager.FindByNameAsync(Input.Email);
+                    if (user != null && await _signInManager.UserManager.CheckPasswordAsync(user, Input.Password))
+                    {
+                        ModelState.AddModelError(string.Empty, "You need to confirm your email before signing in.");
+                        return Page();
+                    }
+                }
                 if (result.IsLockedOut)
                 {
                     _logger.LogWarning("User account locked out.");
