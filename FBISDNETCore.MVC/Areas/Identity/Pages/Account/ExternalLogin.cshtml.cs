@@ -88,8 +88,17 @@ namespace FBISDNETCore.MVC.Areas.Identity.Pages.Account
         
         public IActionResult OnGet() => RedirectToPage("./Login");
 
-        public IActionResult OnPost(string provider, string returnUrl = null)
+        public async Task<IActionResult> OnPostAsync(string provider, string returnUrl = null)
         {
+            // The Login page disables the buttons of providers that aren't configured, but a hand-made POST can still
+            // name one; challenging a scheme that isn't registered would throw.
+            var schemes = await _signInManager.GetExternalAuthenticationSchemesAsync();
+            if (!schemes.Any(s => s.Name == provider))
+            {
+                ErrorMessage = "That login provider is not available.";
+                return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
+            }
+
             // Request a redirect to the external login provider.
             var redirectUrl = Url.Page("./ExternalLogin", pageHandler: "Callback", values: new { returnUrl });
             var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);

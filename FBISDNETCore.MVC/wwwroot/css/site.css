@@ -80,6 +80,12 @@ html {
   border-radius: 8px;
 }
 .external-btn svg { display: block; }
+/* Provider not configured: keep the card look (Bootstrap's .btn:disabled would drop the background and border). */
+.external-btn:disabled {
+  background: #f6f7f9;
+  border-color: #e6e9ee;
+  color: #6c757d;
+}
 
 @media (max-width: 480px) {
   .auth-card { width: 100%; padding: 1.5rem; }
