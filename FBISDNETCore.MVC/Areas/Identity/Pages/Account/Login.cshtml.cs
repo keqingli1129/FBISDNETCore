@@ -109,9 +109,8 @@ namespace FBISDNETCore.MVC.Areas.Identity.Pages.Account
 
             if (ModelState.IsValid)
             {
-                // This doesn't count login failures towards account lockout
-                // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-                var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+                // Wrong passwords count towards account lockout (Identity defaults: 5 failures → locked for 5 minutes)
+                var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: true);
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User logged in.");
@@ -123,13 +122,28 @@ namespace FBISDNETCore.MVC.Areas.Identity.Pages.Account
                 }
                 if (result.IsNotAllowed)
                 {
-                    // NotAllowed (unconfirmed email) is decided before the password is checked, so only say so
-                    // when the password is correct; otherwise it would reveal which emails have accounts.
-                    var user = await _signInManager.UserManager.FindByNameAsync(Input.Email);
-                    if (user != null && await _signInManager.UserManager.CheckPasswordAsync(user, Input.Password))
+                    // NotAllowed (unconfirmed email) is decided before the lockout and password checks, so do both here:
+                    // only say the email is unconfirmed when the password is correct (otherwise it would reveal which
+                    // emails have accounts), and count wrong passwords so unconfirmed accounts can't be guessed endlessly.
+                    var userManager = _signInManager.UserManager;
+                    var user = await userManager.FindByNameAsync(Input.Email);
+                    if (user != null)
                     {
-                        ModelState.AddModelError(string.Empty, "You need to confirm your email before signing in.");
-                        return Page();
+                        if (!await userManager.IsLockedOutAsync(user))
+                        {
+                            if (await userManager.CheckPasswordAsync(user, Input.Password))
+                            {
+                                await userManager.ResetAccessFailedCountAsync(user);
+                                ModelState.AddModelError(string.Empty, "You need to confirm your email before signing in.");
+                                return Page();
+                            }
+                            await userManager.AccessFailedAsync(user);
+                        }
+                        if (await userManager.IsLockedOutAsync(user))
+                        {
+                            // Handled by the IsLockedOut branch below.
+                            result = Microsoft.AspNetCore.Identity.SignInResult.LockedOut;
+                        }
                     }
                 }
                 if (result.IsLockedOut)
